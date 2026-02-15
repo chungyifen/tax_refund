@@ -1,0 +1,15 @@
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# Claude Code
+.agent/
+
+# Environment
+*.env
+*.env.local

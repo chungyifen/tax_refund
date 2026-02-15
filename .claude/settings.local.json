@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.mvnw.cmd compile:*)",
+      "Bash(cmd /c \"cd /d C:\\\\git\\\\tax_Refund\\\\backend\\\\tax && mvnw.cmd compile -q\")",
+      "Bash(cmd /c \"cd /d C:\\\\git\\\\tax_Refund\\\\backend\\\\tax && mvnw.cmd compile -q 2>&1\")",
+      "Bash(cmd /c \"cd /d C:\\\\git\\\\tax_Refund\\\\backend\\\\tax && call mvnw.cmd compile -q\")",
+      "Bash(powershell -Command:*)",
+      "Bash(cmd /c \"for /f \"\"tokens=5\"\" %a in \\(''netstat -aon ^| findstr :8080 ^| findstr LISTENING''\\) do taskkill /F /PID %a\")"
+    ]
+  }
+}
