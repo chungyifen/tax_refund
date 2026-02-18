@@ -1,0 +1,102 @@
+package com.fox.tax.modules.refund.controller;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fox.tax.common.config.SecurityConfig;
+import com.fox.tax.common.security.JwtTokenProvider;
+import com.fox.tax.modules.rbac.service.UserDetailsServiceImpl;
+import com.fox.tax.modules.refund.dto.ExportDeclarationDto;
+import com.fox.tax.modules.refund.service.ExportDeclarationService;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.MockMvc;
+
+@WebMvcTest(ExportDeclarationController.class)
+@Import(SecurityConfig.class)
+class ExportDeclarationControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private ExportDeclarationService exportDeclarationService;
+
+    @MockBean
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockBean
+    private UserDetailsServiceImpl userDetailsService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Test
+    @WithMockUser(authorities = "EXPORT_DECLARATION_VIEW")
+    void search_withAuthority() throws Exception {
+        when(exportDeclarationService.search(any(), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(new ArrayList<>(), PageRequest.of(0, 20), 0));
+
+        mockMvc.perform(get("/api/refund/export-declaration"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(authorities = "OTHER")
+    void search_noAuthority() throws Exception {
+        mockMvc.perform(get("/api/refund/export-declaration"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(authorities = "EXPORT_DECLARATION_VIEW")
+    void getDistinctDocNos() throws Exception {
+        when(exportDeclarationService.getDistinctDocNos()).thenReturn(List.of("EXP001", "EXP002"));
+
+        mockMvc.perform(get("/api/refund/export-declaration/doc-nos"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(authorities = "EXPORT_DECLARATION_EDIT")
+    void update() throws Exception {
+        ExportDeclarationDto dto = new ExportDeclarationDto();
+        when(exportDeclarationService.update(eq(1L), any(ExportDeclarationDto.class))).thenReturn(dto);
+
+        mockMvc.perform(put("/api/refund/export-declaration/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(authorities = "EXPORT_DECLARATION_EDIT")
+    void deleteOne() throws Exception {
+        doNothing().when(exportDeclarationService).delete(1L);
+
+        mockMvc.perform(delete("/api/refund/export-declaration/1"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(authorities = "EXPORT_DECLARATION_EDIT")
+    void batchDelete() throws Exception {
+        when(exportDeclarationService.batchDelete(anyList())).thenReturn(null);
+
+        mockMvc.perform(post("/api/refund/export-declaration/batch-delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(List.of(1L, 2L))))
+                .andExpect(status().isOk());
+    }
+}
