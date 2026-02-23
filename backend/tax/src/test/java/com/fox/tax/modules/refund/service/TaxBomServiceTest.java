@@ -20,6 +20,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class TaxBomServiceTest {
@@ -68,37 +72,36 @@ class TaxBomServiceTest {
     void findAll_noFilters_returnsAll() {
         TaxBom entity1 = createEntity(1L, "DOC001", "產品A", "類型A");
         TaxBom entity2 = createEntity(2L, "DOC002", "產品B", "類型B");
-        List<TaxBom> entities = List.of(entity1, entity2);
         TaxBomDto dto1 = createDto(1L, "DOC001", "產品A", "類型A");
         TaxBomDto dto2 = createDto(2L, "DOC002", "產品B", "類型B");
-        List<TaxBomDto> dtos = List.of(dto1, dto2);
+        Page<TaxBom> entityPage = new PageImpl<>(List.of(entity1, entity2));
+        Pageable pageable = PageRequest.of(0, 20);
 
-        when(repository.findAll(any(Predicate.class))).thenReturn(entities);
-        when(mapper.toDtoList(entities)).thenReturn(dtos);
+        when(repository.findAll(any(Predicate.class), any(Pageable.class))).thenReturn(entityPage);
+        when(mapper.toDto(entity1)).thenReturn(dto1);
+        when(mapper.toDto(entity2)).thenReturn(dto2);
 
-        List<TaxBomDto> result = taxBomService.findAll(null, null, null);
+        Page<TaxBomDto> result = taxBomService.findAll(null, null, null, pageable);
 
-        assertThat(result).hasSize(2);
-        verify(repository).findAll(any(Predicate.class));
-        verify(mapper).toDtoList(entities);
+        assertThat(result.getContent()).hasSize(2);
+        verify(repository).findAll(any(Predicate.class), any(Pageable.class));
     }
 
     @Test
     void findAll_withDocNoFilter_returnsMappedResults() {
         TaxBom entity = createEntity(1L, "DOC001", "產品A", "類型A");
-        List<TaxBom> entities = List.of(entity);
         TaxBomDto dto = createDto(1L, "DOC001", "產品A", "類型A");
-        List<TaxBomDto> dtos = List.of(dto);
+        Page<TaxBom> entityPage = new PageImpl<>(List.of(entity));
+        Pageable pageable = PageRequest.of(0, 20);
 
-        when(repository.findAll(any(Predicate.class))).thenReturn(entities);
-        when(mapper.toDtoList(entities)).thenReturn(dtos);
+        when(repository.findAll(any(Predicate.class), any(Pageable.class))).thenReturn(entityPage);
+        when(mapper.toDto(entity)).thenReturn(dto);
 
-        List<TaxBomDto> result = taxBomService.findAll("DOC001", null, null);
+        Page<TaxBomDto> result = taxBomService.findAll("DOC001", null, null, pageable);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getDocNo()).isEqualTo("DOC001");
-        verify(repository).findAll(any(Predicate.class));
-        verify(mapper).toDtoList(entities);
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getDocNo()).isEqualTo("DOC001");
+        verify(repository).findAll(any(Predicate.class), any(Pageable.class));
     }
 
     @Test
