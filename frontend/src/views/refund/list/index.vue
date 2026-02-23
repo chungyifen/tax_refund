@@ -42,20 +42,21 @@
 
     <!-- 右側內容區 -->
     <div class="main-content">
-        <!-- 標題與操作區 -->
-        <div class="action-bar">
-            <h3>退稅清單管理</h3>
-            <div>
-              <el-button type="success" :icon="Download" @click="handleExportL(null)" 
-                v-permission="['TAX_REFUND_VIEW']" :disabled="!isSingleSelection || multipleSelection[0].status < 2">用料清表(L)</el-button>
-              <el-button type="warning" :icon="Download" @click="handleExportA(null)" 
-                v-permission="['TAX_REFUND_VIEW']" :disabled="!isSingleSelection || multipleSelection[0].status < 2">沖退稅申請(A)</el-button>
-            </div>
+      <div class="action-bar">
+        <div class="left-panel">
+          <!-- 可放標題或麵包屑 -->
         </div>
+        <div class="right-panel">
+          <el-button type="success" :icon="Download" @click="handleExportL(null)"
+            v-permission="['TAX_REFUND_VIEW']" :disabled="!isSingleSelection || multipleSelection[0].status < 2">用料清表(L)</el-button>
+          <el-button type="warning" :icon="Download" @click="handleExportA(null)"
+            v-permission="['TAX_REFUND_VIEW']" :disabled="!isSingleSelection || multipleSelection[0].status < 2">沖退稅申請(A)</el-button>
+        </div>
+      </div>
 
       <!-- 資料表格 -->
       <el-table ref="tableRef" v-loading="listLoading" :data="list" element-loading-text="載入中" border fit
-        highlight-current-row height="calc(100% - 60px)" style="width: 100%;"
+        highlight-current-row height="calc(100% - 90px)" style="width: 100%;"
         :header-cell-style="{ background: '#2d3a4b', color: '#ffffff', fontWeight: 'bold' }"
         @selection-change="handleSelectionChange">
         
@@ -82,8 +83,8 @@
         </el-table-column>
         <el-table-column align="center" label="操作" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" :icon="Edit" @click="handleEditRefund(row)" 
-                v-permission="['EXPORT_DECLARATION_EDIT']" :disabled="row.status < 2">修改退稅</el-button>
+            <el-button type="warning" size="small" :icon="Edit" @click="handleEditRefund(row)"
+                circle v-permission="['EXPORT_DECLARATION_EDIT']" :disabled="row.status < 2" />
           </template>
         </el-table-column>
       </el-table>
@@ -307,71 +308,71 @@ const handleRefundQtyChange = (row) => {
 
 </script>
 
-<style scoped>
-.search-sidebar {
-  width: 250px;
+<style lang="scss" scoped>
+.app-container {
   background-color: #f0f2f5;
+}
+
+.search-sidebar {
+  width: 280px;
+  background-color: #fff;
   border-right: 1px solid #dcdfe6;
   display: flex;
   flex-direction: column;
+  padding: 10px;
   transition: width 0.3s;
-  flex-shrink: 0;
-}
-
-.search-header {
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 15px;
-  background-color: #2d3a4b;
-  color: white;
-  font-weight: bold;
-}
-
-.collapse-btn {
-  cursor: pointer;
-  font-size: 18px;
-}
-
-.search-content {
-  flex: 1;
-  padding: 15px;
   overflow-y: auto;
+
+  .search-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    font-weight: bold;
+    font-size: 16px;
+
+    .collapse-btn {
+      cursor: pointer;
+      font-size: 20px;
+      &:hover { color: #409EFF; }
+    }
+  }
 }
 
-.search-actions {
-  margin-top: 20px;
-}
-
-/* 縮小後的側邊欄 */
 .search-sidebar-collapsed {
   width: 40px;
-  background-color: #2d3a4b;
-  color: white;
+  background-color: #fff;
+  border-right: 1px solid #dcdfe6;
   cursor: pointer;
   display: flex;
-  align-items: flex-start;
   justify-content: center;
-  padding-top: 15px;
+  padding-top: 20px;
   transition: width 0.3s;
-  flex-shrink: 0;
-}
 
-.collapsed-title {
-  writing-mode: vertical-rl;
-  letter-spacing: 5px;
-  display: flex;
-  align-items: center;
+  .collapsed-title {
+    writing-mode: vertical-lr;
+    letter-spacing: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    color: #606266;
+  }
+
+  &:hover {
+    background-color: #f9fafc;
+    color: #409EFF;
+  }
 }
 
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 10px;
-  overflow: hidden;
   background-color: #fff;
+  padding: 10px;
+  margin-left: 10px;
+  overflow: hidden;
 }
 
 .action-bar {
@@ -379,16 +380,24 @@ const handleRefundQtyChange = (row) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-  padding: 0 10px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .pagination-container {
-  padding: 10px 0;
   display: flex;
   justify-content: flex-end;
+  padding: 10px 0;
 }
 
-/* Base styles for tables/forms if needed */
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateX(-20px);
+  opacity: 0;
+}
 </style>

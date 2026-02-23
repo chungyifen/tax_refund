@@ -99,9 +99,9 @@
         </el-table-column>
         <el-table-column align="center" label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" :icon="Edit" @click="handleUpdate(row)" v-permission="['EXPORT_DECLARATION_EDIT']" />
+            <el-button type="warning" size="small" :icon="Edit" @click="handleUpdate(row)" circle v-permission="['EXPORT_DECLARATION_EDIT']" />
             <el-button type="danger" size="small" :icon="Delete" @click="handleDelete(row)"
-              :disabled="row.status !== 1" v-permission="['EXPORT_DECLARATION_EDIT']" />
+              :disabled="row.status !== 1" circle v-permission="['EXPORT_DECLARATION_EDIT']" />
           </template>
         </el-table-column>
       </el-table>
@@ -481,71 +481,71 @@ const confirmGenerateRefund = () => {
 }
 </script>
 
-<style scoped>
-.search-sidebar {
-  width: 250px;
+<style lang="scss" scoped>
+.app-container {
   background-color: #f0f2f5;
+}
+
+.search-sidebar {
+  width: 280px;
+  background-color: #fff;
   border-right: 1px solid #dcdfe6;
   display: flex;
   flex-direction: column;
+  padding: 10px;
   transition: width 0.3s;
-  flex-shrink: 0;
-}
-
-.search-header {
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 15px;
-  background-color: #2d3a4b;
-  color: white;
-  font-weight: bold;
-}
-
-.collapse-btn {
-  cursor: pointer;
-  font-size: 18px;
-}
-
-.search-content {
-  flex: 1;
-  padding: 15px;
   overflow-y: auto;
+
+  .search-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    font-weight: bold;
+    font-size: 16px;
+
+    .collapse-btn {
+      cursor: pointer;
+      font-size: 20px;
+      &:hover { color: #409EFF; }
+    }
+  }
 }
 
-.search-actions {
-  margin-top: 20px;
-}
-
-/* 縮小後的側邊欄 */
 .search-sidebar-collapsed {
   width: 40px;
-  background-color: #2d3a4b;
-  color: white;
+  background-color: #fff;
+  border-right: 1px solid #dcdfe6;
   cursor: pointer;
   display: flex;
-  align-items: flex-start;
   justify-content: center;
-  padding-top: 15px;
+  padding-top: 20px;
   transition: width 0.3s;
-  flex-shrink: 0;
-}
 
-.collapsed-title {
-  writing-mode: vertical-rl;
-  letter-spacing: 5px;
-  display: flex;
-  align-items: center;
+  .collapsed-title {
+    writing-mode: vertical-lr;
+    letter-spacing: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    color: #606266;
+  }
+
+  &:hover {
+    background-color: #f9fafc;
+    color: #409EFF;
+  }
 }
 
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 10px;
-  overflow: hidden;
   background-color: #fff;
+  padding: 10px;
+  margin-left: 10px;
+  overflow: hidden;
 }
 
 .action-bar {
@@ -553,18 +553,16 @@ const confirmGenerateRefund = () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-  padding: 10px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .pagination-container {
-  padding: 10px 0;
   display: flex;
   justify-content: flex-end;
+  padding: 10px 0;
 }
 
-/* Transition animation */
 .slide-fade-enter-active,
 .slide-fade-leave-active {
   transition: all 0.3s ease;

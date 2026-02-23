@@ -1,16 +1,14 @@
 <template>
-  <div class="app-container">
-    <h2>Tax Refund BOM Management</h2>
-    <p>Coming Soon...</p>
-    <el-button type="primary">Example Button</el-button>
+  <div class="app-container" style="display: flex; height: calc(100vh - 84px); padding: 0;">
+    <!-- 待開發 -->
   </div>
 </template>
 
 <script setup>
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .app-container {
-    padding: 20px;
+  background-color: #f0f2f5;
 }
 </style>
