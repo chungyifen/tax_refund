@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,13 +34,16 @@ public class TaxBomController {
     @Autowired
     private TaxBomService service;
 
-    @Operation(summary = "查詢所有退稅BOM")
+    @Operation(summary = "查詢退稅BOM（分頁）")
     @GetMapping
-    public ResponseEntity<List<TaxBomDto>> findAll(
+    public ResponseEntity<Page<TaxBomDto>> findAll(
             @RequestParam(name = "docNo", required = false) String docNo,
             @RequestParam(name = "prodName", required = false) String prodName,
-            @RequestParam(name = "prodType", required = false) String prodType) {
-        return ResponseEntity.ok(service.findAll(docNo, prodName, prodType));
+            @RequestParam(name = "prodType", required = false) String prodType,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(service.findAll(docNo, prodName, prodType, pageable));
     }
 
     @Operation(summary = "新增退稅BOM")

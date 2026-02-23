@@ -58,15 +58,15 @@
         border
         fit
         highlight-current-row
-        height="calc(100% - 50px)"
+        height="calc(100% - 90px)"
         style="width: 100%;"
-        :header-cell-style="{ background: '#eef1f6', color: '#606266' }"
+        :header-cell-style="{ background: '#2d3a4b', color: '#ffffff', fontWeight: 'bold' }"
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55" align="center" />
         <el-table-column align="center" label="項次" width="60">
           <template #default="scope">
-            {{ scope.$index + 1 }}
+            {{ (currentPage - 1) * pageSize + scope.$index + 1 }}
           </template>
         </el-table-column>
         <el-table-column align="center" label="核准文號" prop="docNo" width="150" />
@@ -78,13 +78,26 @@
         <el-table-column align="center" label="使用數量" prop="usageQty" width="100" />
         <el-table-column align="center" label="使用單位" prop="materialUnit" width="80" />
         
-        <el-table-column align="center" label="操作" width="160" fixed="right">
+        <el-table-column align="center" label="操作" width="100" fixed="right">
           <template #default="{row}">
-            <el-button type="text" size="small" @click="handleUpdate(row)" style="color: #409EFF;" v-permission="['BOM_EDIT']">編輯</el-button>
-            <el-button type="text" size="small" @click="handleDelete(row)" style="color: #F56C6C;" v-permission="['BOM_EDIT']">刪除</el-button>
+            <el-button type="warning" size="small" :icon="Edit" @click="handleUpdate(row)" circle v-permission="['BOM_EDIT']" />
+            <el-button type="danger" size="small" :icon="Delete" @click="handleDelete(row)" circle v-permission="['BOM_EDIT']" />
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 分頁 -->
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </div>
 
     <!-- 編輯 Dialog -->
@@ -133,6 +146,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 const list = ref([])
 const listLoading = ref(true)
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(20)
 const listQuery = reactive({
   docNo: '',
   prodName: '',
@@ -174,8 +190,14 @@ const toggleSearch = () => {
 
 const fetchList = () => {
   listLoading.value = true
-  getTaxBomList(listQuery).then(response => {
-    list.value = response
+  const params = {
+    ...listQuery,
+    page: currentPage.value - 1,
+    size: pageSize.value
+  }
+  getTaxBomList(params).then(response => {
+    list.value = response.content || []
+    total.value = response.totalElements || 0
     listLoading.value = false
   }).catch(() => {
     listLoading.value = false
@@ -183,6 +205,7 @@ const fetchList = () => {
 }
 
 const handleFilter = () => {
+  currentPage.value = 1
   fetchList()
 }
 
@@ -190,6 +213,16 @@ const resetFilter = () => {
   listQuery.docNo = ''
   listQuery.prodName = ''
   listQuery.prodType = ''
+  currentPage.value = 1
+  fetchList()
+}
+
+const handleSizeChange = () => {
+  currentPage.value = 1
+  fetchList()
+}
+
+const handleCurrentChange = () => {
   fetchList()
 }
 
@@ -370,6 +403,15 @@ onMounted(() => {
 .action-bar {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 0;
 }
 </style>

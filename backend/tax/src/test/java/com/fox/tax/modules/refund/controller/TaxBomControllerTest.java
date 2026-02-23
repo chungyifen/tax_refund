@@ -13,6 +13,10 @@ import com.fox.tax.modules.refund.dto.TaxBomDto;
 import com.fox.tax.modules.refund.service.TaxBomService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -42,7 +46,8 @@ class TaxBomControllerTest {
     @Test
     @WithMockUser
     void findAll() throws Exception {
-        when(taxBomService.findAll(any(), any(), any())).thenReturn(List.of());
+        Page<TaxBomDto> emptyPage = new PageImpl<>(List.of(), PageRequest.of(0, 20), 0);
+        when(taxBomService.findAll(any(), any(), any(), any(Pageable.class))).thenReturn(emptyPage);
 
         mockMvc.perform(get("/api/refund/bom"))
                 .andExpect(status().isOk());

@@ -3,11 +3,11 @@ package com.fox.tax.modules.refund.service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import com.querydsl.core.BooleanBuilder;
 import com.fox.tax.modules.refund.entity.QTaxBom;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.util.StringUtils;
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -44,7 +44,7 @@ public class TaxBomService {
         this.mapper = mapper;
     }
 
-    public List<TaxBomDto> findAll(String docNo, String prodName, String prodType) {
+    public Page<TaxBomDto> findAll(String docNo, String prodName, String prodType, Pageable pageable) {
         log.info("findAll query: docNo={}, prodName={}, prodType={}", docNo, prodName, prodType);
 
         QTaxBom qTaxBom = QTaxBom.taxBom;
@@ -60,10 +60,7 @@ public class TaxBomService {
             builder.and(qTaxBom.prodType.contains(prodType.trim()));
         }
 
-        Iterable<TaxBom> iterable = repository.findAll(builder);
-        List<TaxBom> list = StreamSupport.stream(iterable.spliterator(), false)
-                .collect(Collectors.toList());
-        return mapper.toDtoList(list);
+        return repository.findAll(builder, pageable).map(mapper::toDto);
     }
 
     @Transactional
