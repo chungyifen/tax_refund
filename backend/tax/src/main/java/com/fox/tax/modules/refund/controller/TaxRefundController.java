@@ -65,14 +65,18 @@ public class TaxRefundController {
     return ResponseEntity.ok(taxRefundService.findByExportDeclarationId(exportDeclarationId));
   }
 
-  /** 搜尋出口報單列表 (退稅清單功能，回傳 DTO 分頁結果) */
+  /** 搜尋出口報單列表 (退稅清單功能，回傳 DTO 分頁結果，預設依報單號碼降冪排序) */
   @Operation(summary = "搜尋出口報單列表 (退稅清單功能)")
   @GetMapping("/list")
   @PreAuthorize("hasAuthority('TAX_REFUND_VIEW')")
   public ResponseEntity<Page<ExportDeclarationDto>> searchExportList(
       @RequestParam(required = false) String docNo,
       @RequestParam(required = false) Integer status,
-      @PageableDefault(size = 10) Pageable pageable) {
+      @PageableDefault(
+              size = 20,
+              sort = "docNo",
+              direction = org.springframework.data.domain.Sort.Direction.DESC)
+          Pageable pageable) {
     return ResponseEntity.ok(taxRefundService.searchExports(docNo, status, pageable));
   }
 

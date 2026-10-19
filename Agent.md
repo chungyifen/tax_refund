@@ -116,18 +116,21 @@ com.fox.tax
     - User (N) <-> (N) Role
 
 ### 目前開發進度 (Current Status)
-1. 系統初始化：專案架構搭建、MySQL 連線配置。
+1. 系統初始化：專案架構搭建、MySQL 連線配置（支援環境變數覆寫） [已完成]。
 2. RBAC 模組：
-    - 使用者/角色 Entity 與 Repository。
-    - Spring Security + JWT 認證流程 (JwtTokenProvider, JwtAuthenticationFilter)。
-    - 登入 API (AuthController) 與資料初始化 (DataInitializer)。
-3. 退稅標準模組 (Tax Refund Standard)：
-    - TaxRefundStandard Entity 與 DTO 設計 [已完成]。
-    - Excel 批次匯入功能 (含 Upsert 邏輯與錯誤報告) [已完成]。
-    - CRUD API 實作 [已完成]。
-4. 進出口報單模組：待開發。
-5. 退稅核銷計算：待開發。
-6. 前端頁面整合：待開發。
+    - 使用者/角色/功能 Entity 與 Repository [已完成]。
+    - Spring Security + JWT 認證流程 (JwtTokenProvider, JwtAuthenticationFilter) [已完成]。
+    - 登入 API (AuthController) 與預設管理員初始化 (DataInitializer) [已完成]。
+3. 退稅核心模組 (`modules/refund`)：
+    - 核退標準維護 (`TaxBom`)：CRUD API 與 Excel 合併儲存格匯入 [已完成]。
+    - 進口報單管理 (`ImportDeclaration`)：搜尋、Excel 匯入/匯出、批次刪除與核銷餘額控管 [已完成]。
+    - 出口報單管理 (`ExportDeclaration`)：搜尋、Excel 匯入/匯出、批次刪除與狀態流轉 [已完成]。
+    - 退稅核銷計算與報表 (`TaxRefund`)：跨規格 FIFO 悲觀鎖核銷、核銷數量調整、用料清表 (Report L) 與沖退稅申請 (Report A) 匯出 [已完成]。
+    - 首頁視覺化儀表板 (`Dashboard`)：每周進出口與核銷統計、待核銷餘額與 Top 10 原料/成品排行（已通過 106 萬筆正式機資料壓測調校） [已完成]。
+4. 部署與資料同步自動化：
+    - `192.168.2.200` Docker Compose + Nginx (`/tax_refund/`) 部署設定 (`deploy/`) [已完成]。
+    - 正式機 (`35.194.138.29/fox_tax`) 至新版 (`192.168.2.79/fox_refund`) 定期同步與重置腳本 (`scripts/sync_prod_to_new.py`) [已完成]。
+    - 詳細維運與並行測試規範請參閱 [`docs/DEPLOYMENT_AND_OPERATIONS.md`](file:///c:/git/tax_Refund/docs/DEPLOYMENT_AND_OPERATIONS.md) 與 [`docs/DATA_SYNC_AND_PARALLEL_RUN.md`](file:///c:/git/tax_Refund/docs/DATA_SYNC_AND_PARALLEL_RUN.md)。
 
 ## 5. 協作指令 (Prompting Guide)
 

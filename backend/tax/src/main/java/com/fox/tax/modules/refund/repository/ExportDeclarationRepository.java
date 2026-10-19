@@ -38,16 +38,12 @@ public interface ExportDeclarationRepository
   List<String> findDistinctDocNos();
 
   /**
-   * 查詢指定起始時間以來新增核銷的出口報單項次
-   *
-   * <p>包含狀態已核銷 (status >= 2) 且具備該時間區間內產生的退稅紀錄或狀態更新時間在區間內的項目。
+   * 查詢指定起始時間以來狀態更新或建立的已核銷出口報單項次（搭配索引快速過濾）
    */
   @Query(
       "SELECT e FROM ExportDeclaration e "
           + "WHERE e.status >= 2 "
-          + "AND (EXISTS (SELECT 1 FROM TaxRefund tr WHERE tr.exportDeclaration = e AND tr.createTime >= :startDate) "
-          + "OR e.updateTime >= :startDate "
-          + "OR (e.updateTime IS NULL AND e.createTime >= :startDate)) "
+          + "AND (e.updateTime >= :startDate OR e.createTime >= :startDate) "
           + "ORDER BY e.id DESC")
   List<ExportDeclaration> findWeeklyVerifiedExports(@Param("startDate") java.util.Date startDate);
 

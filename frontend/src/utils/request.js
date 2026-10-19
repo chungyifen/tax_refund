@@ -2,10 +2,10 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { getToken } from '@/utils/auth'
 
-// 建立 Axios 實例
+// 建立 Axios 實例（baseURL 自動帶入 Vite 子路徑 /tax_refund/api，並將逾時放寬至 30 秒）
 const service = axios.create({
-    baseURL: '/api', // Proxy target
-    timeout: 5000
+    baseURL: `${import.meta.env.BASE_URL}api`,
+    timeout: 30000
 })
 
 // 請求攔截器 - 自動附加 JWT Token

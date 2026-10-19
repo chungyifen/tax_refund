@@ -29,7 +29,9 @@ import lombok.NoArgsConstructor;
     name = "export_declaration",
     indexes = {
       @Index(name = "idx_export_dec_doc_no_items", columnList = "doc_no, items"),
-      @Index(name = "idx_export_dec_status", columnList = "status")
+      @Index(name = "idx_export_dec_status", columnList = "status"),
+      @Index(name = "idx_export_dec_create_time", columnList = "create_time"),
+      @Index(name = "idx_export_dec_update_time", columnList = "update_time")
     })
 @Data
 @EqualsAndHashCode(callSuper = false)

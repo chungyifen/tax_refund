@@ -28,7 +28,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
     name = "tax_refund",
-    indexes = {@Index(name = "idx_tax_refund_report_no", columnList = "report_no")})
+    indexes = {
+      @Index(name = "idx_tax_refund_report_no", columnList = "report_no"),
+      @Index(name = "idx_tax_refund_create_time", columnList = "create_time")
+    })
 @Data
 @Builder
 @AllArgsConstructor

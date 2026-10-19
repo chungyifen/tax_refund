@@ -11,10 +11,18 @@
         </div>
         <div class="search-content">
           <el-form :model="listQuery" label-position="top">
-            <!-- 出口報單號碼：auto-complete 下拉選單 -->
+            <!-- 出口報單號碼：auto-complete 下拉選單（限制單次渲染上限避免大量 DOM 卡頓） -->
             <el-form-item label="出口報單號碼">
-              <el-select v-model="listQuery.docNo" filterable clearable placeholder="請選擇報單號碼" style="width: 100%"
-                @change="handleFilter">
+              <el-select
+                v-model="listQuery.docNo"
+                filterable
+                clearable
+                :filter-method="handleDocNoFilter"
+                placeholder="請輸入或選擇報單號碼"
+                style="width: 100%"
+                @visible-change="onDocNoDropdownVisible"
+                @change="handleFilter"
+              >
                 <el-option v-for="doc in docNoOptions" :key="doc" :label="doc" :value="doc" />
               </el-select>
             </el-form-item>
@@ -146,7 +154,15 @@
     <el-dialog title="產生退稅清單" v-model="generateDialogVisible" width="450px">
       <el-form label-position="top">
         <el-form-item label="請選擇出口報單號碼">
-          <el-select v-model="generateDocNo" filterable clearable placeholder="請選擇報單號碼" style="width: 100%">
+          <el-select
+            v-model="generateDocNo"
+            filterable
+            clearable
+            :filter-method="handleDocNoFilter"
+            placeholder="請輸入或選擇報單號碼"
+            style="width: 100%"
+            @visible-change="onDocNoDropdownVisible"
+          >
             <el-option v-for="doc in docNoOptions" :key="doc" :label="doc" :value="doc" />
           </el-select>
         </el-form-item>
@@ -192,8 +208,30 @@ const listLoading = ref(true)
 const currentPage = ref(1)
 const pageSize = ref(20)
 
+// 報單號碼下拉選項（完整清單與限量渲染清單，避免近萬筆 DOM 節點導致瀏覽器凍結）
+const MAX_DOC_OPTIONS = 100
+const allDocNoOptions = ref([])
 const docNoOptions = ref([])
 const isSearchCollapsed = ref(false)
+
+// 依輸入關鍵字過濾出口報單號碼，每次最多渲染前 100 筆
+const handleDocNoFilter = (query) => {
+  if (!query) {
+    docNoOptions.value = allDocNoOptions.value.slice(0, MAX_DOC_OPTIONS)
+    return
+  }
+  const keyword = query.trim().toLowerCase()
+  docNoOptions.value = allDocNoOptions.value
+    .filter(doc => doc && doc.toLowerCase().includes(keyword))
+    .slice(0, MAX_DOC_OPTIONS)
+}
+
+// 下拉選單展開時重置顯示前 100 筆選項
+const onDocNoDropdownVisible = (visible) => {
+  if (visible) {
+    handleDocNoFilter('')
+  }
+}
 
 // 編輯 Dialog
 const dialogFormVisible = ref(false)
@@ -230,7 +268,8 @@ onMounted(() => {
 
 const fetchDocNos = () => {
   getDocNos().then(response => {
-    docNoOptions.value = response
+    allDocNoOptions.value = Array.isArray(response) ? response : []
+    docNoOptions.value = allDocNoOptions.value.slice(0, MAX_DOC_OPTIONS)
   })
 }
 

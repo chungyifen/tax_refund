@@ -9,14 +9,16 @@
         </div>
         <div class="search-content">
           <el-form :model="listQuery" label-position="top">
-            <!-- 進口報單號碼：auto-complete 下拉選單 -->
+            <!-- 進口報單號碼：auto-complete 下拉選單（限制單次渲染上限避免大量 DOM 卡頓） -->
             <el-form-item label="進口報單號碼">
               <el-select
                 v-model="listQuery.docNo"
                 filterable
                 clearable
-                placeholder="請選擇報單號碼"
+                :filter-method="handleDocNoFilter"
+                placeholder="請輸入或選擇報單號碼"
                 style="width: 100%"
+                @visible-change="onDocNoDropdownVisible"
                 @change="handleFilter"
               >
                 <el-option
@@ -211,8 +213,29 @@ const listQuery = reactive({
   status: 0
 })
 
-// ===== 報單號碼下拉選項 =====
+// ===== 報單號碼下拉選項（完整清單與限量渲染清單，避免數千筆 DOM 卡死畫面） =====
+const MAX_DOC_OPTIONS = 100
+const allDocNoOptions = ref([])
 const docNoOptions = ref([])
+
+// 依輸入關鍵字過濾報單號碼，每次最多渲染前 100 筆
+const handleDocNoFilter = (query) => {
+  if (!query) {
+    docNoOptions.value = allDocNoOptions.value.slice(0, MAX_DOC_OPTIONS)
+    return
+  }
+  const keyword = query.trim().toLowerCase()
+  docNoOptions.value = allDocNoOptions.value
+    .filter(doc => doc && doc.toLowerCase().includes(keyword))
+    .slice(0, MAX_DOC_OPTIONS)
+}
+
+// 下拉選單展開時重置顯示前 100 筆選項
+const onDocNoDropdownVisible = (visible) => {
+  if (visible) {
+    handleDocNoFilter('')
+  }
+}
 
 // ===== 表格資料 =====
 const list = ref([])
@@ -270,7 +293,8 @@ const formatNumber = (val) => {
 // ===== 載入報單號碼列表（auto-complete） =====
 const fetchDocNos = () => {
   getDocNos().then(response => {
-    docNoOptions.value = response
+    allDocNoOptions.value = Array.isArray(response) ? response : []
+    docNoOptions.value = allDocNoOptions.value.slice(0, MAX_DOC_OPTIONS)
   })
 }
 
@@ -447,16 +471,9 @@ const handleExportExcel = () => {
   if (listQuery.materialName) params.materialName = listQuery.materialName
   if (listQuery.status !== undefined && listQuery.status !== null) params.status = listQuery.status
 
-  // 使用 axios 直接下載 blob（繞過 request.js 的 response.data 攔截器）
-  const token = getToken()
-  axios({
-    url: '/api/refund/import-declaration/export',
-    method: 'get',
-    params,
-    responseType: 'blob',
-    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
-  }).then(response => {
-    const url = window.URL.createObjectURL(new Blob([response.data]))
+  // 使用統一封裝的 exportExcel (自動帶入子路徑 baseURL 與 Authorization Header)
+  exportExcel(params).then(blobData => {
+    const url = window.URL.createObjectURL(new Blob([blobData]))
     const link = document.createElement('a')
     link.href = url
     link.setAttribute('download', '進口報單搜尋結果.xlsx')

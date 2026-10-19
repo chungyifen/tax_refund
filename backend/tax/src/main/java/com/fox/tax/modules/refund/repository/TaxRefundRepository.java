@@ -28,29 +28,31 @@ public interface TaxRefundRepository
   List<TaxRefund> findByCreateTimeGreaterThanEqual(java.util.Date startDate);
 
   /**
-   * 查詢核銷總數量前 N 名的原料統計
+   * 查詢核銷總數量前 N 名的原料統計（直接由進口報單累計核銷量聚合，避免百萬筆退稅明細 JOIN 全表掃描）
    *
    * <p>回傳欄位依序為：materialName, materialUnit, totalVerifiedQty, verifyCount, docCount
    */
   @org.springframework.data.jpa.repository.Query(
-      "SELECT i.materialName, MAX(i.materialUnit), SUM(r.usageQty), "
-          + "COUNT(r.id), COUNT(DISTINCT i.docNo) "
-          + "FROM TaxRefund r JOIN r.importDeclaration i "
+      "SELECT i.materialName, MAX(i.materialUnit), SUM(i.totalRefundQty), "
+          + "COUNT(i.id), COUNT(DISTINCT i.docNo) "
+          + "FROM ImportDeclaration i "
+          + "WHERE i.totalRefundQty > 0 "
           + "GROUP BY i.materialName "
-          + "ORDER BY SUM(r.usageQty) DESC")
+          + "ORDER BY SUM(i.totalRefundQty) DESC")
   List<Object[]> findTopVerifiedMaterialsByQty(org.springframework.data.domain.Pageable pageable);
 
   /**
-   * 查詢核銷筆數前 N 名的原料統計
+   * 查詢核銷筆數前 N 名的原料統計（直接由進口報單累計核銷量聚合，避免百萬筆退稅明細 JOIN 全表掃描）
    *
    * <p>回傳欄位依序為：materialName, materialUnit, totalVerifiedQty, verifyCount, docCount
    */
   @org.springframework.data.jpa.repository.Query(
-      "SELECT i.materialName, MAX(i.materialUnit), SUM(r.usageQty), "
-          + "COUNT(r.id), COUNT(DISTINCT i.docNo) "
-          + "FROM TaxRefund r JOIN r.importDeclaration i "
+      "SELECT i.materialName, MAX(i.materialUnit), SUM(i.totalRefundQty), "
+          + "COUNT(i.id), COUNT(DISTINCT i.docNo) "
+          + "FROM ImportDeclaration i "
+          + "WHERE i.totalRefundQty > 0 "
           + "GROUP BY i.materialName "
-          + "ORDER BY COUNT(r.id) DESC, SUM(r.usageQty) DESC")
+          + "ORDER BY COUNT(i.id) DESC, SUM(i.totalRefundQty) DESC")
   List<Object[]> findTopVerifiedMaterialsByCount(
       org.springframework.data.domain.Pageable pageable);
 }

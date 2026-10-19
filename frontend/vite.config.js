@@ -7,6 +7,7 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/tax_refund/',
   plugins: [
     vue(),
     AutoImport({
@@ -23,12 +24,14 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/tax_refund/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/tax_refund\/api/, '/api')
+      },
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
-        // rewrite: (path) => path.replace(/^\/api/, '') // Keep /api if backend expects it, or remove if not. Agent.md implies backend endpoints might be under /api or root. Usually /api is good practice. 
-        // Based on backend controllers, they likely have @RequestMapping("/api/...") or similar. 
-        // Let's check TaxRefundController later to be sure. For now, assume standard proxy.
       }
     }
   }

@@ -150,26 +150,43 @@ public class DashboardService {
     List<TaxRefund> weeklyRefunds =
         taxRefundRepository.findByCreateTimeGreaterThanEqual(startOfWeek);
 
-    // 統計每張出口報單在本周產生的退稅核銷紀錄筆數與最新核銷時間
-    Map<String, Long> refundCountByDocNo = new HashMap<>();
-    Map<String, Date> latestRefundTimeByDocNo = new HashMap<>();
-    for (TaxRefund refund : weeklyRefunds) {
-      if (refund.getExportDeclaration() != null
-          && refund.getExportDeclaration().getDocNo() != null) {
-        String docNo = refund.getExportDeclaration().getDocNo();
-        refundCountByDocNo.merge(docNo, 1L, Long::sum);
-        Date refundTime = refund.getCreateTime();
-        if (refundTime != null) {
-          latestRefundTimeByDocNo.merge(
-              docNo, refundTime, (oldTime, newTime) -> newTime.after(oldTime) ? newTime : oldTime);
+    // 合併由 updateTime/createTime 查出的出口報單與本周退稅紀錄關聯的出口報單（依 ID 去重）
+    Map<Long, ExportDeclaration> mergedExportsMap = new LinkedHashMap<>();
+    if (verifiedExports != null) {
+      for (ExportDeclaration exp : verifiedExports) {
+        if (exp != null) {
+          mergedExportsMap.put(exp.getId() != null ? exp.getId() : (long) System.identityHashCode(exp), exp);
         }
       }
     }
 
-    stats.setWeeklyVerifiedExportItemCount(verifiedExports.size());
+    // 統計每張出口報單在本周產生的退稅核銷紀錄筆數與最新核銷時間
+    Map<String, Long> refundCountByDocNo = new HashMap<>();
+    Map<String, Date> latestRefundTimeByDocNo = new HashMap<>();
+    if (weeklyRefunds != null) {
+      for (TaxRefund refund : weeklyRefunds) {
+        ExportDeclaration exp = refund.getExportDeclaration();
+        if (exp != null && exp.getDocNo() != null) {
+          mergedExportsMap.putIfAbsent(
+              exp.getId() != null ? exp.getId() : (long) System.identityHashCode(exp), exp);
+          String docNo = exp.getDocNo();
+          refundCountByDocNo.merge(docNo, 1L, Long::sum);
+          Date refundTime = refund.getCreateTime();
+          if (refundTime != null) {
+            latestRefundTimeByDocNo.merge(
+                docNo,
+                refundTime,
+                (oldTime, newTime) -> newTime.after(oldTime) ? newTime : oldTime);
+          }
+        }
+      }
+    }
+
+    List<ExportDeclaration> allWeeklyExports = new ArrayList<>(mergedExportsMap.values());
+    stats.setWeeklyVerifiedExportItemCount(allWeeklyExports.size());
 
     Map<String, WeeklyVerifiedExportSummaryDto> summaryMap = new LinkedHashMap<>();
-    for (ExportDeclaration exp : verifiedExports) {
+    for (ExportDeclaration exp : allWeeklyExports) {
       String docNo = exp.getDocNo();
       BigDecimal exportQty = exp.getExportQty() != null ? exp.getExportQty() : BigDecimal.ZERO;
       Date expVerifiedTime =

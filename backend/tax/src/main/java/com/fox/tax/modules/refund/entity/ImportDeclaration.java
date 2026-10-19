@@ -33,7 +33,8 @@ import lombok.EqualsAndHashCode;
       @Index(
           name = "idx_import_dec_material_name_spec",
           columnList = "material_name, material_spec"),
-      @Index(name = "idx_import_dec_doc_no_items", columnList = "doc_no, items")
+      @Index(name = "idx_import_dec_doc_no_items", columnList = "doc_no, items"),
+      @Index(name = "idx_import_dec_create_time", columnList = "create_time")
     })
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -63,7 +64,13 @@ public class ImportDeclaration extends AbstractPersistable {
 
 	@OneToMany(mappedBy = "importDeclaration", cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	private List<TaxRefund> taxRefundList;
-	@Column(name = "total_refund_qty", precision = 9, scale = 3, columnDefinition = "numeric(9,3) default 0", nullable = false)
+	// 累計已核銷退稅數量（對齊正式機 decimal(19,3) 精度，避免大額進口報單累計核銷溢位）
+	@Column(
+	    name = "total_refund_qty",
+	    precision = 19,
+	    scale = 3,
+	    columnDefinition = "numeric(19,3) default 0",
+	    nullable = false)
 	private BigDecimal totalRefundQty;
 
 	public BigDecimal countTotalRefundQty() {
