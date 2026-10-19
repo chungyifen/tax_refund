@@ -1,5 +1,11 @@
 package com.fox.tax;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fox.tax.modules.rbac.entity.Function;
 import com.fox.tax.modules.rbac.entity.Role;
@@ -7,151 +13,130 @@ import com.fox.tax.modules.rbac.entity.User;
 import com.fox.tax.modules.rbac.repository.FunctionRepository;
 import com.fox.tax.modules.rbac.repository.RoleRepository;
 import com.fox.tax.modules.rbac.repository.UserRepository;
-
+import com.fox.tax.modules.rbac.service.UserService;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+/** RBAC 權限控管與 JWT 認證整合測試 */
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 class RbacIntegrationTest {
 
-        @Autowired
-        private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-        @Autowired
-        private UserRepository userRepository;
+  @Autowired private UserRepository userRepository;
 
-        @Autowired
-        private RoleRepository roleRepository;
+  @Autowired private RoleRepository roleRepository;
 
-        @Autowired
-        private FunctionRepository functionRepository;
+  @Autowired private FunctionRepository functionRepository;
 
-        @Autowired
-        private ObjectMapper objectMapper;
+  @Autowired private UserService userService;
 
-        @BeforeEach
-        void setUp() {
-                userRepository.deleteAll();
-                roleRepository.deleteAll();
-                functionRepository.deleteAll();
+  @Autowired private ObjectMapper objectMapper;
 
-                // 1. Create Functions
-                Function fnView = functionRepository
-                                .save(Function.builder().code("USER_VIEW").name("View Users").build());
-                Function fnEdit = functionRepository
-                                .save(Function.builder().code("USER_EDIT").name("Edit Users").build());
+  @BeforeEach
+  void setUp() {
+    userRepository.deleteAll();
+    roleRepository.deleteAll();
+    functionRepository.deleteAll();
+  }
 
-                // 2. Create Roles
-                Role adminRole = Role.builder().name("ROLE_ADMIN").build();
-                adminRole.setFunctions(new HashSet<>(Set.of(fnView, fnEdit)));
-                roleRepository.save(adminRole);
+  /** 透過 /api/auth/login 取得真實 JWT Token */
+  private String obtainJwtToken(String username, String password) throws Exception {
+    Map<String, String> loginPayload = Map.of("username", username, "password", password);
+    MvcResult result =
+        mockMvc
+            .perform(
+                post("/api/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(loginPayload)))
+            .andExpect(status().isOk())
+            .andReturn();
+    JsonNode jsonNode = objectMapper.readTree(result.getResponse().getContentAsString());
+    return jsonNode.get("accessToken").asText();
+  }
 
-                Role viewerRole = Role.builder().name("ROLE_VIEWER").build();
-                viewerRole.setFunctions(new HashSet<>(Set.of(fnView)));
-                roleRepository.save(viewerRole);
+  @Test
+  void testAdminAccess() throws Exception {
+    // 1. 建立功能權限
+    Function fnView =
+        functionRepository.save(Function.builder().code("USER_VIEW").name("View Users").build());
+    Function fnEdit =
+        functionRepository.save(Function.builder().code("USER_EDIT").name("Edit Users").build());
 
-                // 3. Create Users
-                User admin = User.builder().username("admin").password("password").enabled(true).build();
-                admin.setRoles(new HashSet<>(Set.of(adminRole)));
-                userRepository.save(admin); // Password encoding happens in Service, but for repository saving we might
-                                            // need
-                                            // manual encoding if we bypass service.
-                // Wait, UserDetailsServiceImpl uses raw password if not encoded? No,
-                // SecurityConfig usually expects encoded.
-                // My UserService encodes it. But here I am using Repository.
-                // To properly test login, I should use UserService to save User, or encode
-                // manually.
-                // However, I'll bypass login endpoint test and use @WithMockUser for now, OR
-                // valid httpBasic.
-                // Let's use UserService to creating users to ensure encoding.
-        }
+    // 2. 建立管理員角色與使用者
+    Role adminRole = Role.builder().name("ROLE_ADMIN").build();
+    adminRole.setFunctions(new HashSet<>(Set.of(fnView, fnEdit)));
+    roleRepository.save(adminRole);
 
-        @Autowired
-        private com.fox.tax.modules.rbac.service.UserService userService;
+    User admin = User.builder().username("admin").password("password").enabled(true).build();
+    admin.setRoles(new HashSet<>(Set.of(adminRole)));
+    userService.save(admin);
 
-        @Test
-        void testAdminAccess() throws Exception {
-                // Re-create users via Service to ensure password encoding
-                userRepository.deleteAll(); // clear again
+    // 3. 登入取得 JWT Token
+    String token = obtainJwtToken("admin", "password");
 
-                // Setup data again but use proper service for user
-                Function fnView = functionRepository.findByCode("USER_VIEW")
-                                .orElse(functionRepository
-                                                .save(Function.builder().code("USER_VIEW").name("View Users").build()));
-                Function fnEdit = functionRepository.findByCode("USER_EDIT")
-                                .orElse(functionRepository
-                                                .save(Function.builder().code("USER_EDIT").name("Edit Users").build()));
+    // 4. 驗證 GET /api/users (需要 USER_VIEW)
+    mockMvc
+        .perform(get("/api/users").header("Authorization", "Bearer " + token))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].username").value("admin"));
 
-                Role adminRole = roleRepository.findByName("ROLE_ADMIN").orElseGet(() -> {
-                        Role r = Role.builder().name("ROLE_ADMIN").build();
-                        r.setFunctions(new HashSet<>(Set.of(fnView, fnEdit)));
-                        return roleRepository.save(r);
-                });
+    // 5. 驗證 POST /api/users (需要 USER_EDIT)
+    Map<String, Object> newUserPayload =
+        Map.of("username", "testUser", "password", "password123", "enabled", true);
+    mockMvc
+        .perform(
+            post("/api/users")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(newUserPayload)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.username").value("testUser"));
+  }
 
-                User admin = User.builder().username("admin").password("password").enabled(true).build();
-                admin.setRoles(new HashSet<>(Set.of(adminRole)));
-                userService.save(admin);
+  @Test
+  void testViewerAccess() throws Exception {
+    // 1. 建立唯讀權限與角色
+    Function fnView =
+        functionRepository.save(Function.builder().code("USER_VIEW").name("View Users").build());
 
-                // Test GET /api/users (requires USER_VIEW)
-                mockMvc.perform(get("/api/users")
-                                .with(httpBasic("admin", "password")))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$[0].username").value("admin"));
+    Role viewerRole = Role.builder().name("ROLE_VIEWER").build();
+    viewerRole.setFunctions(new HashSet<>(Set.of(fnView)));
+    roleRepository.save(viewerRole);
 
-                // Test POST /api/users (requires USER_EDIT)
-                User newUser = User.builder().username("testUser").password("pw").build();
-                mockMvc.perform(post("/api/users")
-                                .with(httpBasic("admin", "password"))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(newUser)))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.username").value("testUser"));
-        }
+    User viewer = User.builder().username("viewer").password("password").enabled(true).build();
+    viewer.setRoles(new HashSet<>(Set.of(viewerRole)));
+    userService.save(viewer);
 
-        @Test
-        void testViewerAccess() throws Exception {
-                // Setup data
-                Function fnView = functionRepository.findByCode("USER_VIEW")
-                                .orElse(functionRepository
-                                                .save(Function.builder().code("USER_VIEW").name("View Users").build()));
+    // 2. 登入取得 JWT Token
+    String token = obtainJwtToken("viewer", "password");
 
-                Role viewerRole = roleRepository.findByName("ROLE_VIEWER").orElseGet(() -> {
-                        Role r = Role.builder().name("ROLE_VIEWER").build();
-                        r.setFunctions(new HashSet<>(Set.of(fnView)));
-                        return roleRepository.save(r);
-                });
+    // 3. 驗證 GET /api/users (允許存取)
+    mockMvc
+        .perform(get("/api/users").header("Authorization", "Bearer " + token))
+        .andExpect(status().isOk());
 
-                User viewer = User.builder().username("viewer").password("password").enabled(true).build();
-                viewer.setRoles(new HashSet<>(Set.of(viewerRole)));
-                userService.save(viewer);
-
-                // Test GET /api/users (Allowed)
-                mockMvc.perform(get("/api/users")
-                                .with(httpBasic("viewer", "password")))
-                                .andExpect(status().isOk());
-
-                // Test POST /api/users (Forbidden)
-                User newUser = User.builder().username("testUser2").password("pw").build();
-                mockMvc.perform(post("/api/users")
-                                .with(httpBasic("viewer", "password"))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(newUser)))
-                                .andExpect(status().isForbidden());
-        }
+    // 4. 驗證 POST /api/users (無 USER_EDIT 權限，應回傳 403 Forbidden)
+    Map<String, Object> newUserPayload =
+        Map.of("username", "testUser2", "password", "password123", "enabled", true);
+    mockMvc
+        .perform(
+            post("/api/users")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(newUserPayload)))
+        .andExpect(status().isForbidden());
+  }
 }

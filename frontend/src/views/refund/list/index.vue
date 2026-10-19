@@ -98,27 +98,36 @@
     </div>
 
     <!-- 修改退稅清單 Dialog -->
-    <el-dialog title="修改退稅清單" v-model="editDialogVisible" width="900px">
+    <el-dialog title="修改退稅清單" v-model="editDialogVisible" width="960px">
       <el-table :data="refundList" border fit highlight-current-row style="width: 100%">
         <el-table-column label="原料名稱" prop="taxBom.materialName" min-width="150" />
         <el-table-column label="進口報單" prop="importDeclaration.docNo" width="160" />
-        <el-table-column label="進口項次" prop="importDeclaration.items" width="80" align="center" />
-        <el-table-column label="目前核銷數量" width="150" align="center">
-            <template #default="{ row }">
-                <el-input-number v-model="row.usageQty" :precision="3" :step="0.1" :min="0" size="small" @change="handleRefundQtyChange(row)" />
-            </template>
+        <el-table-column label="進口項次" prop="importDeclaration.items" width="90" align="center" />
+        <el-table-column label="進口剩餘可核銷量" width="150" align="center">
+          <template #default="{ row }">
+            {{ formatNumber(row.importDeclaration?.unverifiedQty) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="目前核銷數量" width="160" align="center">
+          <template #default="{ row }">
+            <el-input-number
+              v-model="row.usageQty"
+              :precision="3"
+              :step="0.1"
+              :min="0"
+              size="small"
+              @change="handleRefundQtyChange(row)"
+            />
+          </template>
         </el-table-column>
         <el-table-column label="單位" prop="taxBom.materialUnit" width="80" align="center" />
       </el-table>
       <div style="margin-top: 10px; color: #666; font-size: 12px;">
-         * 修改數量後請點擊「儲存」按鈕以生效。注意：增加核銷數量需確保進口報單仍有餘額。
+        * 調整「目前核銷數量」後系統將即時儲存並同步更新進口報單剩餘可核銷量。
       </div>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="editDialogVisible = false">關閉</el-button>
-          <!-- 這裡其實是單筆修改即時生效，或者是批次修改？ -->
-          <!-- 根據API設計是單筆 update。這裡 UI 呈現多筆，可以設計成每改一筆就呼叫 API，或者全部改完按儲存。
-               為了避免資料不一致，建議單筆修改後顯示 loading 或 toast -->
         </div>
       </template>
     </el-dialog>
@@ -127,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import {
   searchExportList,
   getRefundListByExportId,
@@ -135,7 +144,7 @@ import {
   exportReportL,
   exportReportA
 } from '@/api/refund/taxRefund'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { Search, Refresh, Download, Edit, Fold, Expand } from '@element-plus/icons-vue'
 
 // 搜尋條件
@@ -152,13 +161,13 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const isSearchCollapsed = ref(false)
 
-// 編輯 Dialog
+// 編輯 Dialog 狀態
 const editDialogVisible = ref(false)
 const refundList = ref([])
 const currentExportId = ref(null)
 const multipleSelection = ref([])
-import { computed } from 'vue'
 
+// 是否僅勾選單筆資料
 const isSingleSelection = computed(() => {
   return multipleSelection.value.length === 1
 })
@@ -171,6 +180,7 @@ onMounted(() => {
   fetchList()
 })
 
+// 查詢出口報單列表
 const fetchList = () => {
   listLoading.value = true
   const params = {
@@ -212,7 +222,7 @@ const handleCurrentChange = (val) => {
   fetchList()
 }
 
-// 狀態標籤
+// 狀態標籤轉換
 const getStatusLabel = (status) => {
   const statusMap = {
     1: '已匯入出口明細',
@@ -231,43 +241,46 @@ const getStatusType = (status) => {
   return statusMap[status] || ''
 }
 
+// 數值格式化（小數點後三位）
 const formatNumber = (num) => {
-  return num ? Number(num).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 }) : '0.000'
+  return num !== null && num !== undefined
+    ? Number(num).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+    : '0.000'
 }
 
-// 導出 L
+// 產生本地時區時間戳記字串 (格式: yyyyMMddHHmmss)，避免 toISOString() 產生 UTC 時差
+const getLocalTimestamp = () => {
+  const now = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  return (
+    now.getFullYear() +
+    pad(now.getMonth() + 1) +
+    pad(now.getDate()) +
+    pad(now.getHours()) +
+    pad(now.getMinutes()) +
+    pad(now.getSeconds())
+  )
+}
+
+// 導出用料清表 (Report L)
 const handleExportL = (row) => {
   const target = row || multipleSelection.value[0]
   if (!target) return
-  
+
   exportReportL(target.docNo).then(response => {
     const url = window.URL.createObjectURL(new Blob([response]))
     const link = document.createElement('a')
     link.href = url
-    // 檔名格式: 
-    // yyyyMMddHHmmss-docNo_L.xls
-    // 後端 Header Content-Disposition 會帶檔名，前端如果不設 download 屬性，瀏覽器會使用後端檔名嗎？
-    // 通常 axios blob response header filename extraction 比較麻煩。
-    // 這裡我們暫時保留前端設定檔名，或者依賴後端。
-    // 如果後端設定正確，<a> tag 可以不設 download 屬性？ 不，blob url 需要。
-    // 為了符合使用者需求，這裡嘗試手動組檔名，但時間點會與後端不一致。
-    // 最好是讀取 header。但 request.js 可能只還傳 data。
-    // 簡單解法：這裡只設 docNo_L.xls，讓瀏覽器或使用者自己看？
-    // 使用者要求：[年月日時分秒-出口報單_L.xls]
-    // 我們可以抓現在時間。
-    
-    // 這裡只依賴後端提供的 filename (如果有的話)。
-    // 若沒有，前端組。
-    const nowStr = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14) // YYYYMMDDHHmmss
-    link.setAttribute('download', `${nowStr}-${target.docNo}_L.xls`) 
+    link.setAttribute('download', `${getLocalTimestamp()}-${target.docNo}_L.xls`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    fetchList() // 更新狀態
+    window.URL.revokeObjectURL(url)
+    fetchList() // 更新報單狀態
   })
 }
 
-// 導出 A
+// 導出沖退稅申請 (Report A)
 const handleExportA = (row) => {
   const target = row || multipleSelection.value[0]
   if (!target) return
@@ -276,36 +289,38 @@ const handleExportA = (row) => {
     const url = window.URL.createObjectURL(new Blob([response]))
     const link = document.createElement('a')
     link.href = url
-    const nowStr = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14)
-    link.setAttribute('download', `${nowStr}-${target.docNo}_A.xls`)
+    link.setAttribute('download', `${getLocalTimestamp()}-${target.docNo}_A.xls`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    fetchList() // 更新狀態
+    window.URL.revokeObjectURL(url)
+    fetchList() // 更新報單狀態
   })
 }
 
-// 修改退稅
+// 開啟修改退稅清單視窗
 const handleEditRefund = (row) => {
-    currentExportId.value = row.id
-    getRefundListByExportId(row.id).then(response => {
-        refundList.value = response
-        editDialogVisible.value = true
-    })
+  currentExportId.value = row.id
+  getRefundListByExportId(row.id).then(response => {
+    refundList.value = response
+    editDialogVisible.value = true
+  })
 }
 
+// 更新單筆核銷數量並同步刷新進口報單剩餘可核銷量
 const handleRefundQtyChange = (row) => {
-    // 呼叫 API 更新
-    updateRefundQty(row.id, row.usageQty).then(() => {
-        ElMessage.success('更新成功')
-    }).catch(err => {
-        // 更新失敗，重新載入該筆資料 (或整個列表)
-        getRefundListByExportId(currentExportId.value).then(response => {
-            refundList.value = response
-        })
+  updateRefundQty(row.id, row.usageQty).then(() => {
+    ElMessage.success('更新成功')
+    getRefundListByExportId(currentExportId.value).then(response => {
+      refundList.value = response
     })
+  }).catch(() => {
+    // 更新失敗時重新載入列表以還原數值
+    getRefundListByExportId(currentExportId.value).then(response => {
+      refundList.value = response
+    })
+  })
 }
-
 </script>
 
 <style lang="scss" scoped>

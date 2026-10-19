@@ -10,6 +10,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
@@ -20,10 +21,17 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
+ * 退稅標準 (BOM) 實體類別
+ *
  * @author jeff
  */
 @Entity
-@Table(name = "tax_bom")
+@Table(
+    name = "tax_bom",
+    indexes = {
+      @Index(name = "idx_tax_bom_prod_type_name", columnList = "prod_type, prod_name"),
+      @Index(name = "idx_tax_bom_doc_no", columnList = "doc_no")
+    })
 @Data
 @Builder
 @AllArgsConstructor

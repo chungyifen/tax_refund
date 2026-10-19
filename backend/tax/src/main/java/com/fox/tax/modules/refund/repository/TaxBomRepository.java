@@ -32,4 +32,8 @@ public interface TaxBomRepository extends JpaRepository<TaxBom, Long>, QuerydslP
 
     // 完全匹配：產品類別 AND 產品名稱
     List<TaxBom> findByProdTypeAndProdName(String prodType, String prodName);
-}
+
+    /** 統計不重複的核退標準工業局文號數量 */
+    @Query("SELECT COUNT(DISTINCT t.docNo) FROM TaxBom t")
+    long countDistinctDocNo();
+}
