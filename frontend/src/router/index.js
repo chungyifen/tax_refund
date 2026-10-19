@@ -80,9 +80,10 @@ export const constantRoutes = [
             }
         ]
     },
+    // 未匹配的未知路由統一導向首頁
     {
         path: '/:pathMatch(.*)*',
-        redirect: '/404',
+        redirect: '/dashboard',
         hidden: true
     }
 ]

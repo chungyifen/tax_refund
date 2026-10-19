@@ -7,6 +7,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
@@ -21,10 +22,19 @@ import com.fox.tax.common.entity.AbstractPersistable;
 import lombok.EqualsAndHashCode;
 
 /**
+ * 進口報單實體類別
+ *
  * @author jeff
  */
 @Entity
-@Table(name = "import_declaration")
+@Table(
+    name = "import_declaration",
+    indexes = {
+      @Index(
+          name = "idx_import_dec_material_name_spec",
+          columnList = "material_name, material_spec"),
+      @Index(name = "idx_import_dec_doc_no_items", columnList = "doc_no, items")
+    })
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Builder

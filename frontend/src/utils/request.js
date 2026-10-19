@@ -24,22 +24,27 @@ service.interceptors.request.use(
     }
 )
 
-// 回應攔截器
+// 回應攔截器 - 統一處理回應資料與後端業務錯誤訊息
 service.interceptors.response.use(
-    response => {
-        // 直接回傳 response.data (即 backend JSON body)
-        const res = response.data
-        return res
-    },
-    error => {
-        console.log('err' + error)
-        ElMessage({
-            message: error.message || 'Request Error',
-            type: 'error',
-            duration: 5 * 1000
-        })
-        return Promise.reject(error)
-    }
+  response => {
+    // 直接回傳 response.data (即後端 JSON body 或 Blob)
+    return response.data
+  },
+  error => {
+    console.error('API 請求錯誤:', error)
+    // 優先讀取後端 GlobalExceptionHandler 回傳的 message 欄位
+    const backendMessage =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      error.message ||
+      '請求發生錯誤'
+    ElMessage({
+      message: backendMessage,
+      type: 'error',
+      duration: 5 * 1000
+    })
+    return Promise.reject(error)
+  }
 )
 
 export default service

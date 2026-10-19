@@ -6,10 +6,10 @@ import com.fox.tax.common.entity.AbstractPersistable;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.CascadeType;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -21,10 +21,14 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
+ * 退稅核銷紀錄實體類別
+ *
  * @author jeff
  */
 @Entity
-@Table(name = "tax_refund")
+@Table(
+    name = "tax_refund",
+    indexes = {@Index(name = "idx_tax_refund_report_no", columnList = "report_no")})
 @Data
 @Builder
 @AllArgsConstructor

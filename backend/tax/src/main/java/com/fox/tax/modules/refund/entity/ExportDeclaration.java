@@ -10,6 +10,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -19,10 +20,17 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
+ * 出口報單實體類別
+ *
  * @author jeff
  */
 @Entity
-@Table(name = "export_declaration")
+@Table(
+    name = "export_declaration",
+    indexes = {
+      @Index(name = "idx_export_dec_doc_no_items", columnList = "doc_no, items"),
+      @Index(name = "idx_export_dec_status", columnList = "status")
+    })
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Builder
